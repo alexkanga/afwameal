@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Survey template
+model Survey {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  segments    Segment[]
+  responses   Response[]
+}
+
+// Segment of questions (e.g., Organisation Générale, Scientifique, etc.)
+model Segment {
+  id          String     @id @default(cuid())
+  surveyId    String
+  title       String
+  order       Int        @default(0)
+  survey      Survey     @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([surveyId])
+}
+
+// Individual question
+model Question {
+  id          String     @id @default(cuid())
+  segmentId   String
+  text        String
+  order       Int        @default(0)
+  // Custom rating labels stored as JSON array: ["Label 1", "Label 2", "Label 3", "Label 4", "Label 5"]
+  ratingLabels String?
+  segment     Segment    @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  answers     Answer[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([segmentId])
+}
+
+// Response from a participant
+model Response {
+  id           String    @id @default(cuid())
+  surveyId     String
+  respondentName  String?
+  respondentEmail String?
+  submittedAt  DateTime  @default(now())
+  survey       Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers      Answer[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([surveyId])
+}
+
+// Answer to a specific question
+model Answer {
+  id           String   @id @default(cuid())
+  responseId   String
+  questionId   String
+  rating       Int      // 1-5 scale
+  response     Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([responseId])
+  @@index([questionId])
+}
